@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-TOKYO // POLICY ARCHITECT</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Three.js & Post Processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff41;
+            --neon-orange: #ff9d00;
+            --dark-bg: #050510;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            font-family: 'Rajdhani', sans-serif;
+            color: #e0e0e0;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.6) 90%, rgba(0,0,0,0.95) 100%);
+        }
+
+        .interactive { pointer-events: auto; }
+
+        /* Shared Cyberpunk Styles */
+        .cyber-border {
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(5, 5, 16, 0.75);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
+            position: relative;
+        }
+
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            width: 15px; height: 15px;
+            border-top: 2px solid var(--neon-cyan);
+            border-left: 2px solid var(--neon-cyan);
+        }
+
+        .cyber-border::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; right: -1px;
+            width: 15px; height: 15px;
+            border-bottom: 2px solid var(--neon-cyan);
+            border-right: 2px solid var(--neon-cyan);
+        }
+
+        .cyber-border-orange {
+            border-color: rgba(255, 157, 0, 0.3);
+        }
+        .cyber-border-orange::before, .cyber-border-orange::after {
+            border-color: var(--neon-orange);
+        }
+
+        .tech-font { font-family: 'Share Tech Mono', monospace; }
+        .header-font { font-family: 'Orbitron', sans-serif; }
+
+        .glitch-text {
+            animation: glitch 3s infinite;
+            position: relative;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            90% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            91% { text-shadow: -2px 0 var(--neon-pink), 2px 0 var(--neon-cyan); transform: skewX(10deg); }
+            92% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); transform: skewX(-10deg); }
+            93% { transform: skewX(0deg); }
+            100% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.05));
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0.4;
+        }
+
+        .blinking-cursor::after { content: '█'; animation: blink 1s step-end infinite; margin-left: 2px; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+
+        .loader-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        
+        /* New: Grid Graph specific styles */
+        .node-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            width: 100%;
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div class="scanlines"></div>
+
+    <div id="ui-layer" class="flex flex-col justify-between p-4 box-border">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-start w-full pointer-events-none">
+            <div class="interactive cyber-border p-4 w-96 transform skew-x-[-10deg] ml-8 mt-4">
+                <div class="transform skew-x-[10deg]">
+                    <a href="index.html" class="header-font text-4xl font-bold text-white tracking-widest glitch-text block">POLICY<span style="color:var(--neon-orange)">.ARCHITECT</span></a>
+                    <div class="flex items-center gap-2 mt-2 text-xs tech-font text-orange-400">
+                        <i data-lucide="network" class="w-4 h-4"></i>
+                        <span>SIMULATION // BUILD: 9.2.1-BETA</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="interactive flex gap-4 mt-6 mr-8">
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">GLOBAL SENTIMENT</div>
+                    <div class="text-green-400 font-bold tech-font tracking-widest">STABLE (89%)</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">ACTIVE BILLS</div>
+                    <div class="text-orange-400 font-bold tech-font tracking-widest">4,201</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">CYCLE TIME</div>
+                    <div class="text-cyan-300 font-bold tech-font" id="uptime-counter">00:00:00</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow flex justify-between items-center w-full px-8 py-4 pointer-events-none">
+            
+            <!-- Left Sidebar: Analytics -->
+            <aside class="interactive w-80 flex flex-col gap-4 pointer-events-auto">
+                
+                <!-- Impact Simulation -->
+                <div class="cyber-border cyber-border-orange p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-orange-400">IMPACT PREDICTION</span>
+                        <i data-lucide="activity" class="w-4 h-4 text-orange-400"></i>
+                    </div>
+                    <div class="flex items-end h-24 gap-1 mb-2 border-b border-gray-800 pb-2" id="impact-graph">
+                        <!-- JS Generated Bars -->
+                    </div>
+                    <div class="flex justify-between text-xs tech-font text-gray-400">
+                        <span>ECONOMIC</span>
+                        <span>SOCIAL</span>
+                        <span>ENVIRON</span>
+                    </div>
+                </div>
+
+                <!-- Consensus Meter -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-cyan-300">CONSENSUS MATRIX</span>
+                        <i data-lucide="users" class="w-4 h-4 text-cyan-300"></i>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs tech-font text-gray-300 mb-1">
+                                <span>PUBLIC APPROVAL</span>
+                                <span class="text-green-400">67%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-1">
+                                <div class="bg-green-500 h-1 w-[67%] shadow-[0_0_10px_#00ff00]"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs tech-font text-gray-300 mb-1">
+                                <span>CORPORATE ALIGNMENT</span>
+                                <span class="text-red-400">32%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-1">
+                                <div class="bg-red-500 h-1 w-[32%] shadow-[0_0_10px_#ff0000]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resource Allocation -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-purple-400">RESOURCE ALLOC</span>
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-purple-400"></i>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-16 h-16 rounded-full border-4 border-gray-800 border-l-purple-500 border-t-cyan-500 rotate-45"></div>
+                        <div class="text-xs tech-font space-y-1">
+                            <div class="text-purple-400">■ INFRASTRUCTURE</div>
+                            <div class="text-cyan-400">■ DIGITAL RIGHTS</div>
+                            <div class="text-gray-500">■ PENDING</div>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Center Viewport (Invisible) -->
+            <div class="flex-grow"></div>
+
+            <!-- Right Sidebar: Node Inspector -->
+            <aside class="interactive w-80 flex flex-col gap-4 pointer-events-auto">
+                
+                <!-- Node Details -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80 min-h-[220px]">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-cyan-300">LEGISLATION INSPECTOR</span>
+                        <i data-lucide="file-text" class="w-4 h-4 text-cyan-300"></i>
+                    </div>
+                    
+                    <div id="inspector-placeholder" class="text-center py-8 opacity-50">
+                        <i data-lucide="search" class="w-8 h-8 mx-auto text-cyan-500 mb-2"></i>
+                        <p class="text-xs tech-font text-gray-400">SELECT A POLICY NODE</p>
+                    </div>
+
+                    <div id="inspector-data" class="hidden">
+                        <div class="text-xs text-gray-500 tech-font mb-1">BILL ID</div>
+                        <div class="text-lg text-white header-font tracking-wide mb-3" id="insp-title">HR-4029</div>
+                        
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div class="bg-gray-900 p-2 border border-gray-800">
+                                <div class="text-[10px] text-gray-500">AUTHOR</div>
+                                <div class="text-xs text-cyan-300" id="insp-author">Sen. Kusanagi</div>
+                            </div>
+                            <div class="bg-gray-900 p-2 border border-gray-800">
+                                <div class="text-[10px] text-gray-500">RISK</div>
+                                <div class="text-xs text-orange-400" id="insp-risk">MED</div>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-gray-500 tech-font mb-1">KEYWORD HASH</div>
+                        <div class="text-[10px] text-purple-400 tech-font break-all mb-3">0x4F92...A2B9 // AI_REGULATION</div>
+                        
+                        <div class="text-xs text-gray-500 tech-font mb-1">VOTE PROJECTION</div>
+                        <div class="w-full bg-gray-800 h-1 mb-1">
+                            <div class="bg-white h-1 w-[0%]" id="insp-vote-bar"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-400">
+                            <span>YEA</span>
+                            <span id="insp-vote-val">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amendment Feed -->
+                <div class="cyber-border cyber-border-orange p-4 bg-black bg-opacity-80 flex-grow max-h-64 flex flex-col">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-orange-400">LIVE AMENDMENTS</span>
+                        <i data-lucide="radio" class="w-4 h-4 text-orange-400"></i>
+                    </div>
+                    <div id="amendment-feed" class="tech-font text-xs text-orange-300 space-y-2 overflow-hidden h-full font-mono">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="interactive w-full pointer-events-auto mb-4 px-8">
+            <div class="cyber-border p-2 flex items-center justify-between bg-black bg-opacity-90">
+                <div class="flex gap-4 items-center">
+                    <button class="bg-orange-900 bg-opacity-30 hover:bg-orange-700 text-orange-300 border border-orange-500 px-4 py-1 text-xs tech-font transition-all">
+                        MODE: NETWORK
+                    </button>
+                    <button class="bg-transparent hover:bg-gray-800 text-gray-400 border border-gray-700 px-4 py-1 text-xs tech-font transition-all">
+                        MODE: HIERARCHY
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                     <div class="text-xs tech-font text-gray-500">
+                        LATENCY: <span class="text-green-400">12ms</span>
+                    </div>
+                    <div class="text-xs tech-font text-gray-500 uppercase tracking-widest blinking-cursor">
+                        Analyzing Legislative Vectors...
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        /* --- UI SIMULATION LOGIC --- */
+        
+        // Time
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('uptime-counter').innerText = now.toISOString().split('T')[1].split('.')[0];
+        }, 1000);
+
+        // Impact Graph Generator
+        const graph = document.getElementById('impact-graph');
+        for(let i=0; i<15; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'w-4 bg-orange-500 bg-opacity-60 hover:bg-opacity-100 transition-all cursor-pointer';
+            bar.style.height = Math.floor(Math.random() * 80 + 20) + '%';
+            graph.appendChild(bar);
+        }
+
+        // Amendment Feed
+        const feed = document.getElementById('amendment-feed');
+        const amendments = [
+            "Act 204: Section 4 Revised (Privacy)",
+            "Veto Override: Sector 9 Housing",
+            "New Draft: Carbon Credit Exchange",
+            "Vote Call: AI Ethics Board",
+            "Motion Passed: Cyber-Security Fund",
+            "Amendment: Quantum Encryption Std",
+            "Budget Allocation: Orbital Transport"
+        ];
+        
+        const addFeed = () => {
+            const div = document.createElement('div');
+            div.className = "border-l-2 border-orange-500 pl-2 opacity-0 transform translate-x-[-10px] transition-all duration-500";
+            div.innerText = `> ${amendments[Math.floor(Math.random() * amendments.length)]}`;
+            feed.prepend(div);
+            // Trigger animation
+            setTimeout(() => {
+                div.classList.remove('opacity-0', 'translate-x-[-10px]');
+            }, 50);
+            
+            if (feed.children.length > 8) feed.lastChild.remove();
+        };
+        setInterval(addFeed, 2000);
+
+
+        /* --- THREE.JS SCENE: POLICY NETWORK --- */
+        const container = document.getElementById('canvas-container');
+        
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 20, 40);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+        
+        /* --- GRAPH GENERATION --- */
+        // We will create clusters of nodes representing different policy sectors
+        
+        const nodesData = []; // Store metadata for raycasting
+        const particleCount = 200;
+        const geometry = new THREE.IcosahedronGeometry(0.5, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
+        const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x001133, shininess: 100, flatShading: true });
+
+        // Instanced Meshes for performance
+        const wireMesh = new THREE.InstancedMesh(geometry, material, particleCount);
+        const solidMesh = new THREE.InstancedMesh(geometry, sphereMaterial, particleCount);
+        
+        const dummy = new THREE.Object3D();
+        const positions = [];
+        
+        // Generate Clusters
+        const clusters = 5;
+        const nodesPerCluster = particleCount / clusters;
+        
+        let idx = 0;
+        for(let c=0; c<clusters; c++) {
+            // Cluster Center
+            const cx = (Math.random() - 0.5) * 50;
+            const cy = (Math.random() - 0.5) * 30;
+            const cz = (Math.random() - 0.5) * 50;
+            const cColor = c === 0 ? 0xff9d00 : (c === 1 ? 0xff00ff : 0x00f3ff);
+
+            for(let i=0; i<nodesPerCluster; i++) {
+                // Position relative to cluster center
+                const r = Math.random() * 10;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                
+                const x = cx + r * Math.sin(phi) * Math.cos(theta);
+                const y = cy + r * Math.sin(phi) * Math.sin(theta);
+                const z = cz + r * Math.cos(phi);
+                
+                positions.push(new THREE.Vector3(x, y, z));
+                
+                dummy.position.set(x, y, z);
+                const scale = Math.random() * 1.5 + 0.5;
+                dummy.scale.set(scale, scale, scale);
+                dummy.updateMatrix();
+                
+                wireMesh.setMatrixAt(idx, dummy.matrix);
+                solidMesh.setMatrixAt(idx, dummy.matrix);
+                
+                // Color variation
+                const col = new THREE.Color(cColor);
+                if (Math.random() > 0.8) col.setHex(0xffffff); // Sparkle node
+                wireMesh.setColorAt(idx, col);
+                
+                // Meta Data
+                nodesData.push({
+                    id: `BILL-${Math.floor(Math.random()*9000)+1000}`,
+                    author: `Rep. ${['Doe', 'Mullins', 'Sato', 'Vance', 'Li'][Math.floor(Math.random()*5)]}`,
+                    risk: Math.random() > 0.7 ? 'HIGH' : 'LOW',
+                    vote: Math.floor(Math.random() * 100)
+                });
+
+                idx++;
+            }
+        }
+        
+        scene.add(wireMesh);
+        scene.add(solidMesh);
+
+        /* --- CONNECTIONS (LINES) --- */
+        // Connect nearby nodes
+        const lineMat = new THREE.LineBasicMaterial({ 
+            color: 0x00f3ff, 
+            transparent: true, 
+            opacity: 0.15,
+            blending: THREE.AdditiveBlending 
+        });
+        
+        const lineGeo = new THREE.BufferGeometry();
+        const linePos = [];
+        
+        // Simple distance check to create lines (O(N^2) but N=200 is fine)
+        for(let i=0; i<positions.length; i++) {
+            for(let j=i+1; j<positions.length; j++) {
+                const dist = positions[i].distanceTo(positions[j]);
+                if(dist < 8) {
+                    linePos.push(positions[i].x, positions[i].y, positions[i].z);
+                    linePos.push(positions[j].x, positions[j].y, positions[j].z);
+                }
+            }
+        }
+        
+        lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+        const lines = new THREE.LineSegments(lineGeo, lineMat);
+        scene.add(lines);
+
+        /* --- FLOATING PARTICLES (DATA) --- */
+        const pGeo = new THREE.BufferGeometry();
+        const pPos = new Float32Array(1000 * 3);
+        for(let i=0; i<1000*3; i++) {
+            pPos[i] = (Math.random() - 0.5) * 100;
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1, transparent: true, opacity: 0.5 });
+        const stars = new THREE.Points(pGeo, pMat);
+        scene.add(stars);
+
+        /* --- LIGHTING --- */
+        const ambient = new THREE.AmbientLight(0x000000);
+        scene.add(ambient);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+        pointLight.position.set(0, 20, 0);
+        scene.add(pointLight);
+        
+        const blueLight = new THREE.PointLight(0x00f3ff, 2, 50);
+        blueLight.position.set(30, 0, 30);
+        scene.add(blueLight);
+
+        const orangeLight = new THREE.PointLight(0xff9d00, 2, 50);
+        orangeLight.position.set(-30, -10, -30);
+        scene.add(orangeLight);
+
+        /* --- BLOOM --- */
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 1.8;
+        bloomPass.radius = 0.5;
+
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        /* --- INTERACTIVITY --- */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Refs
+        const inspDiv = document.getElementById('inspector-data');
+        const inspPlace = document.getElementById('inspector-placeholder');
+        
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        /* --- ANIMATION --- */
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            controls.update();
+
+            // Rotate Particles
+            stars.rotation.y += 0.0005;
+            
+            // Pulse Lines
+            const time = Date.now() * 0.001;
+            lines.material.opacity = 0.15 + Math.sin(time) * 0.05;
+
+            // Float Animation for Clusters (Subtle)
+            // Note: Since they are InstancedMesh, we'd need to update matrices to move individual nodes.
+            // For performance/simplicity in this file, we rotate the whole group or move camera.
+            // Let's rely on OrbitControls autoRotate for the "floating" feel.
+
+            // Raycasting
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(solidMesh);
+
+            if(intersects.length > 0) {
+                const id = intersects[0].instanceId;
+                const data = nodesData[id];
+                
+                inspPlace.classList.add('hidden');
+                inspDiv.classList.remove('hidden');
+                
+                document.getElementById('insp-title').innerText = data.id;
+                document.getElementById('insp-author').innerText = data.author;
+                
+                const riskEl = document.getElementById('insp-risk');
+                riskEl.innerText = data.risk;
+                riskEl.className = data.risk === 'HIGH' ? 'text-xs text-red-500' : 'text-xs text-green-400';
+
+                document.getElementById('insp-vote-val').innerText = data.vote + '%';
+                document.getElementById('insp-vote-bar').style.width = data.vote + '%';
+                document.getElementById('insp-vote-bar').className = `h-1 transition-all duration-300 ${data.vote > 50 ? 'bg-green-400 shadow-[0_0_8px_#00ff00]' : 'bg-red-500 shadow-[0_0_8px_#ff0000]'}`;
+
+                // Highlight Effect (Optional - Logic simplified for demo)
+                // document.body.style.cursor = 'pointer';
+            } else {
+                // document.body.style.cursor = 'default';
+                // Don't hide immediately to prevent flickering, or implement a delay
+            }
+
+            composer.render();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

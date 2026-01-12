@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIVICSCOPE // NEURAL GOVERNANCE</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Three.js & Post Processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-pink: #7000ff;
+            --neon-yellow: #ffee00;
+            --dark-bg: #050505;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            font-family: 'Rajdhani', sans-serif;
+            color: #e0e0e0;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.1) 80%, rgba(0,0,0,0.8) 100%);
+        }
+
+        .interactive { pointer-events: auto; }
+
+        .cyber-border {
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            background: rgba(5, 5, 10, 0.85);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 10px; height: 10px;
+            border-top: 2px solid var(--neon-cyan);
+            border-left: 2px solid var(--neon-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .cyber-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 10px; height: 10px;
+            border-bottom: 2px solid var(--neon-cyan);
+            border-right: 2px solid var(--neon-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            background: rgba(0, 242, 255, 0.1);
+            border-color: var(--neon-cyan);
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.2);
+        }
+
+        .tech-font { font-family: 'Share Tech Mono', monospace; }
+        .header-font { font-family: 'Orbitron', sans-serif; }
+
+        .glitch-text {
+            animation: glitch 3s infinite;
+            position: relative;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            90% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            91% { text-shadow: -2px 0 var(--neon-pink), 2px 0 var(--neon-cyan); transform: skewX(10deg); }
+            92% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); transform: skewX(-10deg); }
+            93% { transform: skewX(0deg); }
+            100% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0.3;
+        }
+
+        .blinking-cursor::after { content: '_'; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+    </style>
+</head>
+<body>
+
+    <!-- Three.js Canvas -->
+    <div id="canvas-container"></div>
+    
+    <!-- CRT Scanlines -->
+    <div class="scanlines"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="flex flex-col p-8 2xl:p-16 box-border">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-start w-full pointer-events-none relative z-50">
+            <!-- Top Left: Coordinates (HUD Element) -->
+            <div class="text-left mt-2 ml-2">
+                <div class="cyber-border px-4 py-2 bg-black bg-opacity-60 inline-block">
+                    <div class="text-[10px] 2xl:text-sm text-gray-400 tech-font tracking-widest">GRID SYSTEM ACTIVE</div>
+                    <div class="text-cyan-300 text-xs 2xl:text-base tech-font">LAT: 34.0522 N | LONG: 118.2437 W</div>
+                </div>
+            </div>
+
+            <!-- Top Right: System Stats (Requested to keep) -->
+            <div class="interactive flex gap-6 mt-2 mr-2">
+                <div class="text-right">
+                    <div class="text-[10px] 2xl:text-xs text-gray-500 tech-font uppercase">System Status</div>
+                    <div class="text-green-400 font-bold tech-font tracking-widest text-sm 2xl:text-xl">OPTIMAL</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] 2xl:text-xs text-gray-500 tech-font uppercase">Active Nodes</div>
+                    <div class="text-purple-400 font-bold tech-font tracking-widest text-sm 2xl:text-xl blink">14,802</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] 2xl:text-xs text-gray-500 tech-font uppercase">UTC Time</div>
+                    <div class="text-cyan-300 font-bold tech-font text-sm 2xl:text-xl" id="uptime-counter">00:00:00</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Center Content -->
+        <main class="flex-grow flex flex-col items-center justify-center w-full pointer-events-none z-40">
+            
+            <!-- Branding -->
+            <div class="text-center mb-12 2xl:mb-20">
+                <div class="text-cyan-400 tech-font tracking-[0.5em] text-sm 2xl:text-xl mb-2 uppercase opacity-80 blinking-cursor">Next-Gen Urban Intelligence</div>
+                <h1 class="header-font text-7xl 2xl:text-9xl font-bold text-white tracking-widest glitch-text drop-shadow-[0_0_15px_rgba(0,242,255,0.5)]">
+                    CIVIC<span style="color:var(--neon-cyan)">.SCOPE</span>
+                </h1>
+            </div>
+
+            <!-- Menu -->
+            <div class="flex flex-col gap-6 2xl:gap-8 w-96 2xl:w-[32rem] pointer-events-auto">
+                <a href="city.html" class="interactive menu-btn cyber-border p-4 2xl:p-6 group cursor-pointer relative overflow-hidden bg-black bg-opacity-70 hover:bg-opacity-90 transition-all duration-300 block">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-top"></div>
+                    <div class="flex items-center justify-between pl-4">
+                        <div>
+                            <div class="text-white header-font text-lg 2xl:text-2xl group-hover:text-cyan-300 transition-colors">ENTER SIMULATION</div>
+                            <div class="text-gray-500 tech-font text-xs 2xl:text-sm tracking-widest group-hover:text-gray-300">LIVE NEURAL INFRASTRUCTURE</div>
+                        </div>
+                        <i data-lucide="network" class="w-6 h-6 2xl:w-8 2xl:h-8 text-cyan-500 opacity-50 group-hover:opacity-100 group-hover:rotate-90 transition-all duration-500"></i>
+                    </div>
+                </a>
+
+                <a href="urban.html" class="interactive menu-btn cyber-border p-4 2xl:p-6 group cursor-pointer relative overflow-hidden bg-black bg-opacity-70 hover:bg-opacity-90 transition-all duration-300 block">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-purple-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-top"></div>
+                    <div class="flex items-center justify-between pl-4">
+                        <div>
+                            <div class="text-white header-font text-lg 2xl:text-2xl group-hover:text-purple-300 transition-colors">URBAN DATA HUB</div>
+                            <div class="text-gray-500 tech-font text-xs 2xl:text-sm tracking-widest group-hover:text-gray-300">GLOBAL CIVIC REPOSITORY</div>
+                        </div>
+                        <i data-lucide="database" class="w-6 h-6 2xl:w-8 2xl:h-8 text-purple-500 opacity-50 group-hover:opacity-100 transition-all duration-300"></i>
+                    </div>
+                </a>
+
+                <a href="policy.html" class="interactive menu-btn cyber-border p-4 2xl:p-6 group cursor-pointer relative overflow-hidden bg-black bg-opacity-70 hover:bg-opacity-90 transition-all duration-300 block">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-top"></div>
+                    <div class="flex items-center justify-between pl-4">
+                        <div>
+                            <div class="text-white header-font text-lg 2xl:text-2xl group-hover:text-yellow-300 transition-colors">POLICY ARCHITECT</div>
+                            <div class="text-gray-500 tech-font text-xs 2xl:text-sm tracking-widest group-hover:text-gray-300">GOVERNANCE MODELING</div>
+                        </div>
+                        <i data-lucide="file-text" class="w-6 h-6 2xl:w-8 2xl:h-8 text-yellow-500 opacity-50 group-hover:opacity-100 transition-all duration-300"></i>
+                    </div>
+                </a>
+
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="w-full pointer-events-none mt-4">
+            <div class="flex justify-between items-end px-4 border-t border-gray-800 pt-4 opacity-60">
+                <div class="text-[10px] 2xl:text-sm tech-font text-gray-500">
+                    <div>System Integrity: 100%</div>
+                    <div>Region: Neo-Aethelgard District</div>
+                </div>
+                
+                <div class="pointer-events-auto flex gap-2">
+                     <button id="cam-cinematic" class="bg-cyan-900 bg-opacity-30 hover:bg-cyan-700 text-cyan-300 border border-cyan-500 px-3 py-1 2xl:px-5 2xl:py-2 text-[10px] 2xl:text-sm tech-font transition-all">
+                        VIEW: ORBITAL
+                    </button>
+                    <button id="cam-interactive" class="bg-transparent hover:bg-gray-800 text-gray-400 border border-gray-700 px-3 py-1 2xl:px-5 2xl:py-2 text-[10px] 2xl:text-sm tech-font transition-all">
+                        VIEW: DRONE
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        /* --- UI LOGIC --- */
+        const updateTime = () => {
+            const now = new Date();
+            document.getElementById('uptime-counter').innerText = now.toISOString().split('T')[1].split('.')[0] + " UTC";
+        }
+        setInterval(updateTime, 1000);
+
+        /* --- 3D ENGINE --- */
+        let scene, camera, renderer, clock, composer, controls;
+        let trains = [];
+        let drones = [];
+        let isCinematic = true;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f19);
+            scene.fog = new THREE.FogExp2(0x161c2b, 0.0012);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
+            camera.position.set(0, 150, 400);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // --- BLOOM ---
+            const renderScene = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0;
+            bloomPass.strength = 1.2;
+            bloomPass.radius = 0.5;
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+
+            clock = new THREE.Clock();
+
+            setupLighting();
+            createGround();
+            createCity();
+            createTransport();
+            
+            window.addEventListener('resize', onWindowResize);
+            
+            // Interaction Event Listeners
+            document.querySelectorAll('.menu-btn').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                   gsap.to(camera, { fov: 55, duration: 0.5, onUpdate: () => camera.updateProjectionMatrix() });
+                });
+                btn.addEventListener('mouseleave', () => {
+                   gsap.to(camera, { fov: 60, duration: 0.5, onUpdate: () => camera.updateProjectionMatrix() });
+                });
+            });
+
+            document.getElementById('cam-cinematic').addEventListener('click', () => {
+                isCinematic = true;
+                controls.autoRotate = true;
+            });
+            document.getElementById('cam-interactive').addEventListener('click', () => {
+                isCinematic = false;
+                controls.autoRotate = false;
+            });
+
+            animate();
+        }
+
+        function setupLighting() {
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(200, 500, 300);
+            scene.add(sun);
+            const fill = new THREE.PointLight(0x00f2ff, 1, 1000);
+            fill.position.set(-300, 100, 200);
+            scene.add(fill);
+        }
+
+        function createGround() {
+            const geo = new THREE.PlaneGeometry(5000, 5000, 20, 20);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x050505, 
+                roughness: 0.8, 
+                metalness: 0.5 
+            });
+            const ground = new THREE.Mesh(geo, mat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -2;
+            scene.add(ground);
+            const grid = new THREE.GridHelper(5000, 100, 0x00f2ff, 0x111111);
+            grid.position.y = -1;
+            scene.add(grid);
+        }
+
+        function createCity() {
+            const placedBuildings = [];
+            const maxAttempts = 50;
+
+            // Loop to attempt placing buildings
+            for (let i = 0; i < 600; i++) {
+                const r = Math.random();
+                let building;
+                
+                // Select Building Type
+                if (r > 0.94) building = createSignatureLandmark(Math.floor(Math.random() * 5));
+                else if (r > 0.88) building = createGravityAnchor();
+                else if (r > 0.82) building = createTwinTowers();
+                else if (r > 0.76) building = createHexHive();
+                else if (r > 0.70) building = createZiggurat();
+                else if (r > 0.64) building = createCrystalShard();
+                else if (r > 0.58) building = createTechSpire();
+                else if (r > 0.52) building = createModularHabitat();
+                else if (r > 0.46) building = createComplexTower();
+                else building = createGenericBuilding();
+
+                // Get bounding box and approx radius
+                const box = new THREE.Box3().setFromObject(building);
+                const sizeX = box.max.x - box.min.x;
+                const sizeZ = box.max.z - box.min.z;
+                // Add padding for gaps
+                const radius = (Math.max(sizeX, sizeZ) / 2) + 8;
+
+                let posFound = false;
+                for(let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 100 + Math.random() * 900;
+                    const x = Math.cos(angle) * dist;
+                    const z = Math.sin(angle) * dist;
+
+                    // Check collisions
+                    let collision = false;
+                    for(const existing of placedBuildings) {
+                        const dx = existing.x - x;
+                        const dz = existing.z - z;
+                        const distSq = dx*dx + dz*dz;
+                        const minDist = existing.radius + radius;
+                        if(distSq < minDist * minDist) {
+                            collision = true;
+                            break;
+                        }
+                    }
+
+                    if(!collision) {
+                        building.position.set(x, 0, z);
+                        scene.add(building);
+                        placedBuildings.push({x, z, radius});
+                        posFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // --- BUILDING GENERATORS ---
+
+        function createGenericBuilding() {
+            const group = new THREE.Group();
+            const w = 10 + Math.random() * 20;
+            const h = 20 + Math.random() * 120;
+            const d = 10 + Math.random() * 20;
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.8 });
+            const body = new THREE.Mesh(geo, mat);
+            body.position.y = h / 2;
+            group.add(body);
+            
+            const detailCount = Math.floor(h / 15);
+            for(let j=0; j<detailCount; j++) {
+                const band = new THREE.Mesh(new THREE.BoxGeometry(w + 1, 1, d + 1), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+                band.position.y = j * 15 + 5;
+                group.add(band);
+            }
+            return group;
+        }
+
+        function createComplexTower() {
+            const group = new THREE.Group();
+            const segs = 3 + Math.floor(Math.random() * 4);
+            let currentY = 0;
+            for(let i=0; i<segs; i++) {
+                const h = 20 + Math.random() * 40;
+                const rad = 15 - (i * 2);
+                const geo = i % 2 === 0 ? new THREE.BoxGeometry(rad*2, h, rad*2) : new THREE.CylinderGeometry(rad, rad, h, 6);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.1 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.y = currentY + h/2;
+                group.add(mesh);
+                
+                const rim = new THREE.Mesh(new THREE.TorusGeometry(rad + 1, 0.5, 8, 16), new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x00f2ff : 0x7000ff }));
+                rim.rotation.x = Math.PI/2;
+                rim.position.y = currentY + h;
+                group.add(rim);
+                currentY += h;
+            }
+            return group;
+        }
+
+        function createZiggurat() {
+            const group = new THREE.Group();
+            const levels = 4 + Math.floor(Math.random() * 3);
+            let y = 0;
+            let size = 30 + Math.random() * 10;
+            const mat = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.1, metalness: 0.6 });
+            
+            for(let i=0; i<levels; i++) {
+                const h = 10 + Math.random() * 5;
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(size, h, size), mat);
+                mesh.position.y = y + h/2;
+                group.add(mesh);
+                y += h;
+                size *= 0.7; // Taper
+            }
+            return group;
+        }
+
+        function createTwinTowers() {
+            const group = new THREE.Group();
+            const h = 60 + Math.random() * 60;
+            const w = 10;
+            const mat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8 });
+            
+            const t1 = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), mat);
+            t1.position.set(-8, h/2, 0);
+            group.add(t1);
+
+            const t2 = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), mat);
+            t2.position.set(8, h/2, 0);
+            group.add(t2);
+
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(20, 2, 6), new THREE.MeshStandardMaterial({ color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.5 }));
+            bridge.position.y = h * 0.7;
+            group.add(bridge);
+
+            return group;
+        }
+
+        function createTechSpire() {
+             const group = new THREE.Group();
+             const h = 100 + Math.random() * 100;
+             const mat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9 });
+             
+             const spire = new THREE.Mesh(new THREE.CylinderGeometry(2, 6, h, 8), mat);
+             spire.position.y = h/2;
+             group.add(spire);
+
+             const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+             for(let i=0; i<5; i++) {
+                 const ring = new THREE.Mesh(new THREE.TorusGeometry(3 + (i*1.5), 0.5, 8, 16), ringMat);
+                 ring.rotation.x = Math.PI/2;
+                 ring.position.y = (h/5) * (i+1) * 0.8;
+                 group.add(ring);
+             }
+             return group;
+        }
+
+        function createHexHive() {
+            const group = new THREE.Group();
+            const h = 40 + Math.random() * 60;
+            const rad = 10 + Math.random() * 5;
+            const mat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.4 });
+            const geo = new THREE.CylinderGeometry(rad, rad, h, 6);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = h/2;
+            group.add(mesh);
+            
+            // Glowing honeycomb patterns
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0xff9900, wireframe: true, transparent: true, opacity: 0.3 });
+            const wire = new THREE.Mesh(geo, wireMat);
+            wire.scale.set(1.01, 1, 1.01);
+            wire.position.y = h/2;
+            group.add(wire);
+            return group;
+        }
+
+        function createCrystalShard() {
+            const group = new THREE.Group();
+            const h = 60 + Math.random() * 50;
+            const w = 15 + Math.random() * 5;
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00f2ff, metalness: 0.9, roughness: 0.1, transparent:true, opacity: 0.9 });
+            
+            const geo = new THREE.CylinderGeometry(w, 2, h, 4);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = h/2 + 5;
+            group.add(mesh);
+            
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(2, 5, 5, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            base.position.y = 2.5;
+            group.add(base);
+            return group;
+        }
+
+        function createModularHabitat() {
+            const group = new THREE.Group();
+            const coreH = 50 + Math.random() * 60;
+            const core = new THREE.Mesh(new THREE.BoxGeometry(10, coreH, 10), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+            core.position.y = coreH/2;
+            group.add(core);
+            
+            const podGeo = new THREE.BoxGeometry(6, 4, 8);
+            const podMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+            
+            const levels = Math.floor(coreH / 5);
+            for(let i=0; i<levels; i++) {
+                if(Math.random() > 0.3) {
+                    const pod = new THREE.Mesh(podGeo, podMat);
+                    const angle = Math.floor(Math.random() * 4) * (Math.PI/2);
+                    const dist = 6;
+                    pod.position.set(Math.cos(angle)*dist, i*5 + 2.5, Math.sin(angle)*dist);
+                    pod.rotation.y = angle;
+                    group.add(pod);
+                }
+            }
+            return group;
+        }
+
+        function createGravityAnchor() {
+            const group = new THREE.Group();
+            const h = 80 + Math.random() * 40;
+            const geo = new THREE.CylinderGeometry(20, 5, h, 8);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 1 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = h/2;
+            group.add(mesh);
+            
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(25, 2, 16, 100), new THREE.MeshBasicMaterial({ color: 0xff00ff }));
+            ring.rotation.x = Math.PI/2;
+            ring.position.y = h - 10;
+            group.add(ring);
+            return group;
+        }
+
+        function createSignatureLandmark(style) {
+            const group = new THREE.Group();
+            if (style === 0) { // Spiral Lathe
+                const points = [];
+                for (let i = 0; i < 20; i++) points.push(new THREE.Vector2(Math.sin(i * 0.2) * 10 + 15, i * 15));
+                group.add(new THREE.Mesh(new THREE.LatheGeometry(points, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1 })));
+            } else if (style === 1) { // Halo Ring
+                const mat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 1 });
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(60, 10, 16, 100), mat);
+                ring.rotation.x = Math.PI/2; ring.position.y = 200; group.add(ring);
+                const core = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 300, 8), mat);
+                core.position.y = 150; group.add(core);
+            } else if (style === 2) { // Stacked Arcology
+                for(let i=0; i<5; i++) {
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+                    const block = new THREE.Mesh(new THREE.BoxGeometry(80 - i*10, 20, 80 - i*10), mat);
+                    block.position.y = i * 60 + 30; group.add(block);
+                    for(let j=0; j<4; j++) {
+                        const s = new THREE.Mesh(new THREE.BoxGeometry(5, 40, 5), mat);
+                        const angle = (j / 4) * Math.PI * 2;
+                        s.position.set(Math.cos(angle) * 30, i * 60 + 50, Math.sin(angle) * 30);
+                        group.add(s);
+                    }
+                }
+            } else if (style === 3) { // Bio Dome
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(30, 40, 40, 8), new THREE.MeshStandardMaterial({ color: 0x444444 }));
+                base.position.y = 20;
+                group.add(base);
+                
+                const dome = new THREE.Mesh(new THREE.IcosahedronGeometry(30, 2), new THREE.MeshStandardMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.3, wireframe: true }));
+                dome.position.y = 40;
+                group.add(dome);
+                const domeInner = new THREE.Mesh(new THREE.IcosahedronGeometry(28, 1), new THREE.MeshStandardMaterial({ color: 0x00f2ff, metalness:1, roughness:0 }));
+                domeInner.position.y = 40;
+                group.add(domeInner);
+
+            } else { // Twisted Helix Stack
+                 let y = 0;
+                 const mat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+                 for(let i=0; i<15; i++) {
+                     const box = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 20), mat);
+                     box.position.y = y + 5;
+                     box.rotation.y = i * 0.2;
+                     const s = 1 - (i * 0.03);
+                     box.scale.set(s, 1, s);
+                     group.add(box);
+                     y += 10;
+                 }
+            }
+            return group;
+        }
+
+        function createTransport() {
+            // Trains
+            for(let i=0; i<8; i++) {
+                const curve = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(-1000, 40 + i*20, (Math.random()-0.5) * 800),
+                    new THREE.Vector3(-200, 40 + i*20, (Math.random()-0.5) * 400),
+                    new THREE.Vector3(200, 60 + i*20, (Math.random()-0.5) * 400),
+                    new THREE.Vector3(1000, 40 + i*20, (Math.random()-0.5) * 800),
+                ]);
+                const rail = new THREE.Mesh(new THREE.TubeGeometry(curve, 100, 1.5, 8, false), new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0x00f2ff, emissiveIntensity: 0.2 }));
+                scene.add(rail);
+                const train = { mesh: new THREE.Mesh(new THREE.BoxGeometry(15, 4, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00f2ff })), curve: curve, offset: Math.random(), speed: 0.001 + Math.random() * 0.002 };
+                scene.add(train.mesh); trains.push(train);
+            }
+            // Drones
+            for(let i=0; i<150; i++) {
+                const drone = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0x00f2ff : 0xffffff }));
+                drone.position.set((Math.random()-0.5) * 1500, 50 + Math.random() * 300, (Math.random()-0.5) * 1500);
+                drone.userData = { velocity: new THREE.Vector3((Math.random()-0.5)*2, 0, (Math.random()-0.5)*2) };
+                scene.add(drone); drones.push(drone);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            controls.update();
+
+            // Camera Motion
+            if (isCinematic) {
+                camera.position.x = Math.sin(time * 0.05) * 600;
+                camera.position.z = Math.cos(time * 0.05) * 600 + Math.sin(time * 0.1) * 100;
+                camera.position.y = 180 + Math.sin(time * 0.2) * 40;
+                camera.lookAt(0, 50, 0);
+            }
+
+            // Updates
+            trains.forEach(t => { t.offset = (t.offset + t.speed) % 1; const pos = t.curve.getPointAt(t.offset); t.mesh.position.copy(pos); t.mesh.lookAt(t.curve.getPointAt((t.offset + 0.01) % 1)); });
+            drones.forEach(d => { d.position.add(d.userData.velocity); if (Math.abs(d.position.x) > 1000) d.userData.velocity.x *= -1; if (Math.abs(d.position.z) > 1000) d.userData.velocity.z *= -1; d.position.y += Math.sin(time * 2 + d.position.x) * 0.1; });
+
+            composer.render();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

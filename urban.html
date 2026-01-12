@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-TOKYO // URBAN DATA HUB</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Three.js & Post Processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffee00;
+            --dark-bg: #050510;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            font-family: 'Rajdhani', sans-serif;
+            color: #e0e0e0;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none; /* Allow clicks to pass through to canvas */
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 80%, rgba(0,0,0,0.9) 100%);
+        }
+
+        /* Enable pointer events for UI elements */
+        .interactive {
+            pointer-events: auto;
+        }
+
+        .cyber-border {
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(5, 5, 16, 0.7);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+            position: relative;
+        }
+
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            border-top: 2px solid var(--neon-cyan);
+            border-left: 2px solid var(--neon-cyan);
+        }
+
+        .cyber-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            border-bottom: 2px solid var(--neon-cyan);
+            border-right: 2px solid var(--neon-cyan);
+        }
+
+        .tech-font { font-family: 'Share Tech Mono', monospace; }
+        .header-font { font-family: 'Orbitron', sans-serif; }
+
+        /* Glitch Animation for Text */
+        .glitch-text {
+            animation: glitch 3s infinite;
+            position: relative;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            90% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+            91% { text-shadow: -2px 0 var(--neon-pink), 2px 0 var(--neon-cyan); transform: skewX(10deg); }
+            92% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); transform: skewX(-10deg); }
+            93% { transform: skewX(0deg); }
+            100% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0.3;
+        }
+
+        .blinking-cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+
+        .stat-bar-fill {
+            transition: width 1s ease-in-out;
+            box-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        .loader-spin {
+            animation: spin 4s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- Three.js Canvas -->
+    <div id="canvas-container"></div>
+    
+    <!-- CRT Scanlines Overlay -->
+    <div class="scanlines"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="flex flex-col justify-between p-4 box-border">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-start w-full pointer-events-none">
+            <div class="interactive cyber-border p-4 w-96 transform skew-x-[-10deg] ml-8 mt-4">
+                <div class="transform skew-x-[10deg]">
+                    <a href="index.html" class="header-font text-4xl font-bold text-white tracking-widest glitch-text block">URBAN<span style="color:var(--neon-cyan)">.DATA</span></a>
+                    <div class="flex items-center gap-2 mt-2 text-xs tech-font text-cyan-300">
+                        <i data-lucide="globe" class="w-4 h-4"></i>
+                        <span>SECTOR 7 // NODE: ALPHA-CENTRAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="interactive flex gap-4 mt-6 mr-8">
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">SYSTEM STATUS</div>
+                    <div class="text-green-400 font-bold tech-font tracking-widest">ONLINE</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">SECURITY LEVEL</div>
+                    <div class="text-red-500 font-bold tech-font tracking-widest blink">DEFCON 4</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-400 tech-font">UPTIME</div>
+                    <div class="text-cyan-300 font-bold tech-font" id="uptime-counter">00:00:00</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="flex-grow flex justify-between items-center w-full px-8 py-4 pointer-events-none">
+            
+            <!-- Left Sidebar: Stats -->
+            <aside class="interactive w-80 flex flex-col gap-4 pointer-events-auto">
+                <!-- Population Block -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-cyan-300">DEMOGRAPHICS</span>
+                        <i data-lucide="users" class="w-4 h-4 text-cyan-300"></i>
+                    </div>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs tech-font mb-1 text-gray-400">
+                            <span>TOTAL POPULATION</span>
+                            <span id="pop-val" class="text-white">8,492,031</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-1">
+                            <div class="bg-cyan-400 h-1 stat-bar-fill" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-xs tech-font mb-1 text-gray-400">
+                            <span>DENSITY INDEX</span>
+                            <span class="text-white">94%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-1">
+                            <div class="bg-pink-500 h-1 stat-bar-fill" style="width: 94%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Energy Block -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-yellow-300">POWER GRID</span>
+                        <i data-lucide="zap" class="w-4 h-4 text-yellow-300"></i>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div class="border border-gray-700 p-2">
+                            <div class="text-xs text-gray-500 tech-font">LOAD</div>
+                            <div class="text-xl tech-font text-yellow-300">89%</div>
+                        </div>
+                        <div class="border border-gray-700 p-2">
+                            <div class="text-xs text-gray-500 tech-font">OUTPUT</div>
+                            <div class="text-xl tech-font text-yellow-300">12GW</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 h-16 border border-gray-700 relative overflow-hidden">
+                        <!-- CSS Generated Graph -->
+                         <div id="energy-graph" class="absolute bottom-0 left-0 w-full h-full flex items-end gap-1 px-1"></div>
+                    </div>
+                </div>
+
+                <!-- Network Block -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-purple-400">NET TRAFFIC</span>
+                        <i data-lucide="wifi" class="w-4 h-4 text-purple-400"></i>
+                    </div>
+                    <div class="text-xs tech-font text-gray-300 space-y-1">
+                        <div class="flex justify-between"><span>PACKET LOSS:</span> <span class="text-green-400">0.02%</span></div>
+                        <div class="flex justify-between"><span>LATENCY:</span> <span class="text-green-400">4ms</span></div>
+                        <div class="flex justify-between"><span>BANDWIDTH:</span> <span class="text-purple-300">450 TB/s</span></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Empty for 3D View -->
+            <div class="flex-grow h-full"></div>
+
+            <!-- Right Sidebar: Inspector -->
+            <aside class="interactive w-80 flex flex-col gap-4 pointer-events-auto">
+                <div class="cyber-border p-4 bg-black bg-opacity-80 min-h-[200px]">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-cyan-300">OBJECT INSPECTOR</span>
+                        <i data-lucide="scan-line" class="w-4 h-4 text-cyan-300"></i>
+                    </div>
+                    <div id="inspector-content" class="text-sm tech-font text-gray-400">
+                        <p class="mb-2 text-xs uppercase tracking-widest text-gray-600">Hover over sector to scan...</p>
+                        <div class="w-full h-32 border border-dashed border-gray-700 flex items-center justify-center opacity-50">
+                            <div class="loader-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full"></div>
+                        </div>
+                    </div>
+                    <div id="inspector-data" class="hidden mt-2 space-y-2">
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">ID:</span> <span class="text-cyan-300 font-bold" id="insp-id">--</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">TYPE:</span> <span class="text-white" id="insp-type">--</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">HEIGHT:</span> <span class="text-white" id="insp-height">--</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">OCCUPANCY:</span> <span class="text-purple-300" id="insp-occ">--</span></div>
+                        <div class="w-full bg-gray-800 h-2 mt-2">
+                             <div id="insp-bar" class="bg-cyan-500 h-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Logs -->
+                <div class="cyber-border p-4 bg-black bg-opacity-80 flex-grow max-h-64 overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                        <span class="header-font text-sm text-green-400">SYSTEM LOG</span>
+                        <i data-lucide="terminal" class="w-4 h-4 text-green-400"></i>
+                    </div>
+                    <div id="terminal-logs" class="tech-font text-xs text-green-500 space-y-1 overflow-hidden h-full">
+                        <!-- JS injected logs -->
+                    </div>
+                </div>
+            </aside>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="interactive w-full pointer-events-auto mb-4 px-8">
+            <div class="cyber-border p-2 flex items-center justify-between bg-black bg-opacity-90">
+                <div class="flex gap-4 items-center">
+                    <button class="bg-cyan-900 bg-opacity-30 hover:bg-cyan-700 text-cyan-300 border border-cyan-500 px-4 py-1 text-xs tech-font transition-all">
+                        VIEW: ISOMETRIC
+                    </button>
+                    <button class="bg-transparent hover:bg-gray-800 text-gray-400 border border-gray-700 px-4 py-1 text-xs tech-font transition-all">
+                        VIEW: TOP-DOWN
+                    </button>
+                    <button class="bg-transparent hover:bg-gray-800 text-gray-400 border border-gray-700 px-4 py-1 text-xs tech-font transition-all">
+                        HEATMAP
+                    </button>
+                </div>
+                
+                <div class="text-xs tech-font text-gray-500 uppercase tracking-widest blinking-cursor">
+                    Processing 402 TB/s // 
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        /* --- UI Logic --- */
+        const updateTime = () => {
+            const now = new Date();
+            document.getElementById('uptime-counter').innerText = now.toISOString().split('T')[1].split('.')[0];
+        }
+        setInterval(updateTime, 1000);
+
+        // Terminal Log Simulator
+        const logs = document.getElementById('terminal-logs');
+        const logMessages = [
+            "Syncing node data...",
+            "Packet verified: 0x4F2A",
+            "Traffic surge detected in Sector 4",
+            "Optimizing grid power distribution...",
+            "Unauthorized access attempt blocked",
+            "Updating geometric shaders...",
+            "Downloading texture pack...",
+            "Ping: 2ms",
+            "Connected to Satellite Array B",
+            "Rendering frame buffer..."
+        ];
+
+        const addLog = () => {
+            const msg = logMessages[Math.floor(Math.random() * logMessages.length)];
+            const div = document.createElement('div');
+            const time = new Date().toISOString().split('T')[1].split('.')[0];
+            div.innerHTML = `<span class="text-gray-600">[${time}]</span> ${msg}`;
+            logs.prepend(div);
+            if (logs.children.length > 15) logs.lastChild.remove();
+        }
+        setInterval(addLog, 1500);
+
+        // Energy Graph Simulator
+        const graphContainer = document.getElementById('energy-graph');
+        for(let i=0; i<20; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'w-1 bg-yellow-500 opacity-70';
+            bar.style.height = Math.random() * 100 + '%';
+            graphContainer.appendChild(bar);
+        }
+        setInterval(() => {
+            const bars = graphContainer.children;
+            for(let bar of bars) {
+                bar.style.height = Math.random() * 100 + '%';
+            }
+        }, 1000);
+
+
+        /* --- THREE.JS SCENE --- */
+        const container = document.getElementById('canvas-container');
+        
+        // Scene Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050510, 0.0025);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(50, 60, 50);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        container.appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1; // Don't go below ground
+
+        // --- POST PROCESSING (BLOOM) ---
+        const renderScene = new THREE.RenderPass(scene, camera);
+
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 1.5; // High glow for cyberpunk feel
+        bloomPass.radius = 0.5;
+
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- CITY GENERATION ---
+        // We use InstancedMesh for high performance with thousands of buildings
+        
+        const gridSize = 40;
+        const spacing = 4;
+        const totalBuildings = gridSize * gridSize;
+        
+        // 1. Solid Building Geometry (Black core)
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const boxMat = new THREE.MeshPhongMaterial({ 
+            color: 0x0a0a0a, 
+            shininess: 100,
+            specular: 0x111111 
+        });
+        
+        // 2. Wireframe/Edge Geometry (The Neon Lines)
+        // We use a trick: Scale a wireframe box slightly larger than the solid box
+        const edgesGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+        const edgesMat = new THREE.MeshBasicMaterial({ 
+            color: 0x00f3ff, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15,
+            blending: THREE.AdditiveBlending
+        });
+
+        // 3. Top Faces (The "Roofs" often glow in cyberpunk)
+        const roofGeo = new THREE.PlaneGeometry(1, 1);
+        const roofMat = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.2,
+            blending: THREE.AdditiveBlending
+        });
+
+
+        const meshSolid = new THREE.InstancedMesh(boxGeo, boxMat, totalBuildings);
+        const meshEdges = new THREE.InstancedMesh(edgesGeo, edgesMat, totalBuildings);
+        const meshRoofs = new THREE.InstancedMesh(roofGeo, roofMat, totalBuildings);
+
+        const dummy = new THREE.Object3D();
+        const dummyColor = new THREE.Color();
+
+        // Data for raycasting
+        const buildingData = [];
+
+        let count = 0;
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                // Random height based on noise-like distribution (or just random)
+                // We want some clusters of tall buildings
+                const distToCenter = Math.sqrt((i - gridSize/2)**2 + (j - gridSize/2)**2);
+                const maxH = 20 - (distToCenter * 0.8);
+                let height = Math.abs(Math.random() * maxH + 2);
+                if (height < 1) height = 1;
+                
+                // Position
+                const x = (i - gridSize/2) * spacing;
+                const z = (j - gridSize/2) * spacing;
+                const y = height / 2;
+
+                // Scale & Pos for Solid & Edges
+                dummy.position.set(x, y, z);
+                dummy.scale.set(3, height, 3);
+                dummy.rotation.set(0, 0, 0);
+                dummy.updateMatrix();
+                
+                meshSolid.setMatrixAt(count, dummy.matrix);
+                meshEdges.setMatrixAt(count, dummy.matrix);
+
+                // Roof Position (Top of building)
+                dummy.scale.set(3, 3, 1); // Reset scale for plane
+                dummy.position.set(x, height, z);
+                dummy.rotation.set(Math.PI/2, 0, 0);
+                dummy.updateMatrix();
+                meshRoofs.setMatrixAt(count, dummy.matrix);
+                
+                // Set color variation for roofs to make it interesting
+                const isSpecial = Math.random() > 0.9;
+                const color = isSpecial ? new THREE.Color(0xff00ff) : new THREE.Color(0x0044ff);
+                meshRoofs.setColorAt(count, color);
+
+                // Store data for interactivity
+                buildingData.push({
+                    id: `SEC-${i}-${j}`,
+                    height: height.toFixed(1),
+                    type: isSpecial ? 'DATA_HUB' : 'RESIDENTIAL_NODE',
+                    occupancy: Math.floor(Math.random() * 100) + '%'
+                });
+
+                count++;
+            }
+        }
+
+        scene.add(meshSolid);
+        scene.add(meshEdges);
+        scene.add(meshRoofs);
+
+        // --- GROUND GRID ---
+        const gridHelper = new THREE.GridHelper(200, 100, 0x00f3ff, 0x111111);
+        gridHelper.position.y = 0.1;
+        scene.add(gridHelper);
+
+        const planeGeo = new THREE.PlaneGeometry(300, 300);
+        const planeMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        plane.rotation.x = -Math.PI / 2;
+        scene.add(plane);
+
+        // --- TRAFFIC (MOVING PARTICLES) ---
+        // Animated particles moving along the grid lines
+        const trafficCount = 400;
+        const trafficGeo = new THREE.BufferGeometry();
+        const trafficPositions = new Float32Array(trafficCount * 3);
+        const trafficSpeeds = [];
+
+        for(let i=0; i<trafficCount; i++) {
+            // Pick a random axis (X or Z)
+            const axis = Math.random() > 0.5 ? 'x' : 'z';
+            const lane = (Math.floor(Math.random() * gridSize) - gridSize/2) * spacing;
+            
+            trafficPositions[i*3] = axis === 'x' ? (Math.random() * 160 - 80) : lane;
+            trafficPositions[i*3+1] = Math.random() * 8 + 1; // Altitude
+            trafficPositions[i*3+2] = axis === 'z' ? (Math.random() * 160 - 80) : lane;
+
+            trafficSpeeds.push({
+                axis: axis,
+                speed: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1)
+            });
+        }
+
+        trafficGeo.setAttribute('position', new THREE.BufferAttribute(trafficPositions, 3));
+        const trafficMat = new THREE.PointsMaterial({
+            color: 0xffff00,
+            size: 0.6,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        const trafficSystem = new THREE.Points(trafficGeo, trafficMat);
+        scene.add(trafficSystem);
+
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // Neon Point Lights randomly placed
+        for(let i=0; i<10; i++) {
+            const pl = new THREE.PointLight(0x00f3ff, 1, 40);
+            pl.position.set(
+                (Math.random() * 80 - 40),
+                Math.random() * 20 + 5,
+                (Math.random() * 80 - 40)
+            );
+            scene.add(pl);
+        }
+
+        // --- RAYCASTER (INTERACTIVITY) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // Element refs
+        const inspId = document.getElementById('insp-id');
+        const inspType = document.getElementById('insp-type');
+        const inspHeight = document.getElementById('insp-height');
+        const inspOcc = document.getElementById('insp-occ');
+        const inspData = document.getElementById('inspector-data');
+        const inspContent = document.getElementById('inspector-content');
+        const inspBar = document.getElementById('insp-bar');
+
+        function onMouseMove( event ) {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+        }
+        window.addEventListener( 'mousemove', onMouseMove, false );
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            controls.update();
+
+            // Animate Traffic
+            const positions = trafficSystem.geometry.attributes.position.array;
+            for(let i=0; i<trafficCount; i++) {
+                const s = trafficSpeeds[i];
+                if (s.axis === 'x') {
+                    positions[i*3] += s.speed;
+                    if (positions[i*3] > 80) positions[i*3] = -80;
+                    if (positions[i*3] < -80) positions[i*3] = 80;
+                } else {
+                    positions[i*3+2] += s.speed;
+                    if (positions[i*3+2] > 80) positions[i*3+2] = -80;
+                    if (positions[i*3+2] < -80) positions[i*3+2] = 80;
+                }
+            }
+            trafficSystem.geometry.attributes.position.needsUpdate = true;
+
+            // Raycasting logic
+            raycaster.setFromCamera( mouse, camera );
+            // Raycast against the solid buildings
+            const intersection = raycaster.intersectObject( meshSolid );
+
+            if ( intersection.length > 0 ) {
+                const instanceId = intersection[0].instanceId;
+                const data = buildingData[instanceId];
+
+                // Show data in sidebar
+                inspContent.style.display = 'none';
+                inspData.classList.remove('hidden');
+                
+                inspId.innerText = data.id;
+                inspType.innerText = data.type;
+                inspType.style.color = data.type === 'DATA_HUB' ? '#ff00ff' : '#ffffff';
+                inspHeight.innerText = data.height + 'm';
+                inspOcc.innerText = data.occupancy;
+                inspBar.style.width = data.occupancy;
+                
+                // Visual Highlight (Change color of roof temporarily)
+                // Note: InstancedMesh color changes are tricky every frame without heavy cost, 
+                // so we usually use a separate "highlight mesh". For simplicity in this demo,
+                // we'll just update the UI primarily.
+
+            } else {
+                inspContent.style.display = 'flex';
+                inspData.classList.add('hidden');
+            }
+
+            composer.render();
+        }
+
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
