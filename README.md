@@ -1,4 +1,4 @@
-<div align="center">
+
   
 # 🏢 CIVIC.SCOPE
 city simulator with procedural generation and AI analysis
