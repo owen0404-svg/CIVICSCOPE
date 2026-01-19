@@ -105,8 +105,12 @@ data-driven simulation with accessible 3D visualization.
 
 Access the live demo of our project here: 
 > [!IMPORTANT]
-> https://stupendous-llama-651516.netlify.app/ 
+> 🔗 **Live Demo**  
+> https://stupendous-llama-651516.netlify.app/  
+>
+> 🎥 **Video Demo**  
 > https://youtu.be/z4-jg1b5h8M
+
 ---
 
 ## 👨‍💻 Developers
