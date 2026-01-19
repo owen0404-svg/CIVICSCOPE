@@ -1,5 +1,4 @@
 
-<div align="center">
 
 # 🏢 CIVIC.SCOPE  
 **Interactive 3D city simulation for sustainable urban planning**
