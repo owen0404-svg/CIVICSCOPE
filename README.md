@@ -28,7 +28,7 @@
 
 
 
-![Civicscope Homepage](./main/homepage_civicscope.jpg) 
+![Civicscope Homepage](walpaper.jpeg) 
 
 </div>
 
