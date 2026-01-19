@@ -1,6 +1,6 @@
 
 
-# 🏢 CIVIC.SCOPE  
+![Civicscope Homepage](banner.jpeg) 
 **Interactive 3D city simulation for sustainable urban planning**
 
  **[PITCH DECK 🎤](https://www.canva.com/design/DAG858aw_hc/YCjjHE1VC6i-XHsMZxvc_g/view)** | **[VIDEO DEMO 🎥]**
