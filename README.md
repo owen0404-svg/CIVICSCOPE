@@ -32,8 +32,9 @@
   </a>
 
   <a href="https://stupendous-llama-651516.netlify.app/" style="text-decoration:none;">
-    <img src="https://img.shields.io/badge/r%2FCivicScope-Community-orange?style=for-the-badge&logo=demo">
+    <img src="https://img.shields.io/badge/Live%20Demo-Open-orange?style=for-the-badge&logo=netlify">
   </a>
+
 
 </div>
 
