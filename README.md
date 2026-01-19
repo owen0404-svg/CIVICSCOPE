@@ -19,7 +19,7 @@
     <img src="https://img.shields.io/badge/Pitch%20Deck-Canva-purple?style=for-the-badge&logo=canva">
   </a>
 
-  <a href="#" style="text-decoration:none;">
+  <a href="https://youtu.be/z4-jg1b5h8M" style="text-decoration:none;">
     <img src="https://img.shields.io/badge/Video%20Demo-Watch-red?style=for-the-badge&logo=youtube">
   </a>
 
@@ -29,6 +29,10 @@
 
   <a href="https://reddit.com/r/CivicScope" style="text-decoration:none;">
     <img src="https://img.shields.io/badge/r%2FCivicScope-Community-orange?style=for-the-badge&logo=reddit">
+  </a>
+
+  <a href="https://stupendous-llama-651516.netlify.app/" style="text-decoration:none;">
+    <img src="https://img.shields.io/badge/r%2FCivicScope-Community-orange?style=for-the-badge&logo=demo">
   </a>
 
 </div>
@@ -92,6 +96,8 @@ Modern cities often prioritize growth and capital over sustainability, leading t
 - 🎯 **Real-World Accuracy** – grounded in real sustainability data used to measure and quantify urban planning in cities all across the world
 - 🤖 **AI Assisted Analysis** – our project uses Artificial Intelligence to serve the data and to make it more easily digestible
 
+---
+![Civicscope Homepage](stadium.jpeg)
 ---
 
 ## 🔴 LIVE DEMO
