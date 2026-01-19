@@ -71,8 +71,8 @@ data-driven simulation with accessible 3D visualization.
 ---
 
 ## ❗ Problem
-
-Modern cities often prioritize growth and capital over sustainability, leading to:
+> [!IMPORTANT]
+> Modern cities often prioritize growth and capital over sustainability, leading to:
 
 - 🌫️ High pollution and emissions  
 - 🚗 Traffic congestion and inefficient layouts  
