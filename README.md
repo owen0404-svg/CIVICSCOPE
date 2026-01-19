@@ -44,8 +44,24 @@
 
 ## 🌐 Overview
 
-**CivicScope** is an interactive 3D city simulator that visualizes how **urban design, transport, zoning, energy, and policy choices** affect sustainability in real time.  
-Built with **procedural generation**, as well as pushing the limits of **Three.js**, this program combines visuals with **real-world metrics**.It makes urban planning intuitive and accessible.
+CivicScope is an interactive 3D city simulation platform designed to support
+the exploration of sustainable urban planning decisions. It enables users to
+visualize how changes in urban design, transportation, zoning, energy systems,
+and policy choices affect city-scale sustainability outcomes in real time.
+
+The platform is built using procedural generation and a Three.js–based rendering
+engine, with a strong focus on clarity, performance, and extensibility. This
+design provides the following benefits:
+
+- **Interactivity:** Urban parameters can be adjusted dynamically, with immediate
+  visual feedback across the simulated city.
+- **Scalability:** Procedural techniques allow simulations to scale from small
+  districts to large urban environments.
+- **Comprehensibility:** Real-world sustainability metrics are presented through
+  intuitive visual representations.
+
+CivicScope aims to make complex urban systems easier to understand by combining
+data-driven simulation with accessible 3D visualization.
 
 ---
 
