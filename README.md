@@ -1,7 +1,7 @@
 # 🏛 CIVIC.SCOPE  
 **Interactive 3D city simulation for sustainable urban planning**
 
-<div align="center" style="margin-bottom: 12px;">
+<div style="margin-bottom: 12px;">
 
   <a href="https://github.com/" style="text-decoration:none;">
     <img src="https://img.shields.io/badge/GitHub-CivicScope-black?style=for-the-badge&logo=github">
